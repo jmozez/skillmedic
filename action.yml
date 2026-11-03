@@ -1,0 +1,85 @@
+name: skillmedic
+description: Check Agent Skills (SKILL.md) and plugin manifests for problems that stop AI agents from finding or using them.
+author: jmozez
+branding:
+  icon: check-square
+  color: green
+
+inputs:
+  path:
+    description: Folder to check. Every SKILL.md and plugin manifest under it is checked.
+    default: "."
+  fail-on:
+    description: "Fail the step at this level or above: error, warning, info or never."
+    default: error
+  host:
+    description: Comma-separated host ids to check (see skillmedic hosts), or "none". Empty checks every default host rule.
+    default: ""
+  args:
+    description: Any other skillmedic options, split on spaces (no quotes or glob expansion), for example "--max-files 50000".
+    default: ""
+  html:
+    description: Where to write the HTML report.
+    default: skillmedic-report.html
+  badge:
+    description: Where to write a shields.io endpoint badge JSON file. Empty skips it.
+    default: ""
+  sarif:
+    description: Where to write a SARIF file for github/codeql-action/upload-sarif. Empty skips it.
+    default: ""
+
+outputs:
+  score:
+    description: The score out of 100.
+    value: ${{ steps.run.outputs.score }}
+  report:
+    description: Path to the HTML report.
+    value: ${{ inputs.html }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build skillmedic
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --no-audit --no-fund --ignore-scripts && npm run build
+    - name: Run skillmedic
+      id: run
+      shell: bash
+      env:
+        IN_PATH: ${{ inputs.path }}
+        IN_FAIL_ON: ${{ inputs.fail-on }}
+        IN_HOST: ${{ inputs.host }}
+        IN_ARGS: ${{ inputs.args }}
+        IN_HTML: ${{ inputs.html }}
+        IN_BADGE: ${{ inputs.badge }}
+        IN_SARIF: ${{ inputs.sarif }}
+        CLI: ${{ github.action_path }}/dist/cli.js
+      run: |
+        set -euo pipefail
+        # No pathname expansion: the args input is split on spaces, never globbed.
+        set -f
+        opts=(--fail-on never --json --html "$IN_HTML")
+        [ -n "$IN_BADGE" ] && opts+=(--badge "$IN_BADGE")
+        [ -n "$IN_SARIF" ] && opts+=(--sarif "$IN_SARIF")
+        if [ "$IN_HOST" = "none" ]; then opts+=(--no-hosts)
+        else
+          IFS=',' read -ra hosts <<< "$IN_HOST"
+          for h in "${hosts[@]}"; do [ -n "$h" ] && opts+=(--host "$h"); done
+        fi
+        # shellcheck disable=SC2206
+        extra=($IN_ARGS)
+        node "$CLI" check "${opts[@]}" "${extra[@]}" -- "$IN_PATH" > skillmedic-report.json
+        score=$(node -e 'console.log(require(process.argv[1]).summary.score)' "$PWD/skillmedic-report.json")
+        echo "score=$score" >> "$GITHUB_OUTPUT"
+        node -e '
+          const r = require(process.argv[1]); const s = r.summary;
+          // Skill text is untrusted: escape Markdown and HTML so it cannot add links, images or layout to the summary.
+          const md = (x) => String(x).replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/[\\`*_{}\[\]()<>#+!|~@:]/g, (c) => "&#" + c.charCodeAt(0) + ";").slice(0, 500);
+          const lines = ["## skillmedic: " + s.score + "/100", "", s.skills + " skills, " + s.plugins + " plugins, about " + s.listingTokens + " tokens of listings. " + s.errors + " errors, " + s.warnings + " warnings, " + s.infos + " notes.", ""];
+          if (r.findings.length) { lines.push("| Level | Check | Skill | File | Finding |", "| --- | --- | --- | --- | --- |");
+            for (const f of r.findings.slice(0, 50)) lines.push("| " + [f.severity, f.rule, f.skill || "", (f.file || "") + (f.line ? ":" + f.line : ""), f.message].map(md).join(" | ") + " |"); }
+          require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          const order = ["info", "warning", "error"]; const min = order.indexOf(process.argv[2]);
+          if (min >= 0 && r.findings.some(f => order.indexOf(f.severity) >= min)) { console.log("::error::skillmedic found problems at " + process.argv[2] + " level or above. See the job summary."); process.exit(1); }
+        ' "$PWD/skillmedic-report.json" "$IN_FAIL_ON"

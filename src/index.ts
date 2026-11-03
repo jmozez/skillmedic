@@ -8,3 +8,5 @@ export { printable } from "./sanitize.js";
 export type * from "./types.js";
 export { hostRules, loadHostPack } from "./hosts.js";
 export type { HostCheck, HostPack, HostRule } from "./hosts.js";
+export { badgeJson, formatHtml } from "./html.js";
+export { formatSarif } from "./sarif.js";
