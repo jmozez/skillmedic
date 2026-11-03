@@ -5,6 +5,7 @@ import { rules, runRules } from "./rules/index.js";
 import { buildReport, formatText } from "./report.js";
 import { hostRules, loadHostPack } from "./hosts.js";
 import type { Severity } from "./types.js";
+import { printable } from "./sanitize.js";
 
 const require = createRequire(import.meta.url);
 const VERSION: string = require("../package.json").version;
@@ -88,7 +89,7 @@ export async function main(argv: string[]): Promise<number> {
   }
 
   let project;
-  try { project = discover(positionals[1] ?? ".", { maxFiles }); } catch (e) { console.error((e as Error).message); return 2; }
+  try { project = discover(positionals[1] ?? ".", { maxFiles }); } catch (e) { console.error(`skillmedic: ${printable((e as Error).message)}`); return 2; }
   if (!project.skills.length && !project.plugins.length) {
     console.error(`Found no SKILL.md or plugin manifest under ${positionals[1] ?? "."}.`);
     return 2;
