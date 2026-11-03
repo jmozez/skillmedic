@@ -182,3 +182,18 @@ describe("options cannot smuggle input", () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe("slow input", () => {
+  it("scans links in a pathological line quickly", async () => {
+    const { references } = await import("../src/rules/index.js");
+    const t = Date.now();
+    references("[".repeat(50_000) + "\n" + "[](" + "[](!".repeat(20_000));
+    expect(Date.now() - t).toBeLessThan(2000);
+  });
+  it("only treats agent-plugins.org itself as the shared schema", async () => {
+    const { isAgentSchema } = await import("../src/discover.js");
+    expect(isAgentSchema("https://agent-plugins.org/schemas/1.0.0/plugin.schema.json")).toBe(true);
+    expect(isAgentSchema("https://evil.test/agent-plugins.org")).toBe(false);
+    expect(isAgentSchema("https://agent-plugins.org.evil.test/x")).toBe(false);
+  });
+});

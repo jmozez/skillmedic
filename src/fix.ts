@@ -1,4 +1,4 @@
-import { lstatSync, readFileSync, writeFileSync } from "node:fs";
+import { closeSync, constants, fstatSync, ftruncateSync, openSync, readFileSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import { parseDocument } from "yaml";
 import { printable } from "./sanitize.js";
@@ -169,9 +169,18 @@ export async function runFix(judge: Provider, rewriter: Provider, project: Proje
       const skill = byName.get(k.skill)!;
       const path = join(skill.dir, "SKILL.md");
       // Never write through a link, and never over a file that changed since it was read.
-      if (!lstatSync(path).isFile()) throw new Error(`${k.file} is not a regular file, so it was not changed.`);
-      if (readFileSync(path, "utf8") !== skill.raw) throw new Error(`${k.file} changed while fix was running, so it was not changed.`);
-      writeFileSync(path, patchSkill(skill.raw, k.after));
+      // One handle for the check, the read and the write, so the file cannot be swapped in between.
+      let fd: number;
+      try { fd = openSync(path, constants.O_RDWR | (constants.O_NOFOLLOW ?? 0)); } catch { throw new Error(`${k.file} is not a regular file, so it was not changed.`); }
+      try {
+        if (!fstatSync(fd).isFile()) throw new Error(`${k.file} is not a regular file, so it was not changed.`);
+        if (readFileSync(fd, "utf8") !== skill.raw) throw new Error(`${k.file} changed while fix was running, so it was not changed.`);
+        const out = Buffer.from(patchSkill(skill.raw, k.after), "utf8");
+        ftruncateSync(fd, 0);
+        writeSync(fd, out, 0, out.length, 0);
+      } finally {
+        closeSync(fd);
+      }
       written.push(k.file);
     }
   }

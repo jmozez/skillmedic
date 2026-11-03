@@ -49,7 +49,7 @@ const PERSON = /^\s*(I|I'm|I'll|I can|We|We'll|You|You'll|You can)\b|\bI can hel
 /** Relative links and file mentions in markdown text, with their offsets. */
 export function references(text: string): { target: string; index: number; kind: "link" | "path" }[] {
   const out: { target: string; index: number; kind: "link" | "path" }[] = [];
-  for (const m of text.matchAll(/!?\[[^\]\n]*\]\(\s*<?([^)\s>]+)>?(?:\s+["'][^"'\n]*["'])?\s*\)/g)) out.push({ target: m[1], index: m.index!, kind: "link" });
+  for (const m of text.matchAll(/!?\[[^[\]\n]{0,500}\]\( {0,20}<?([^)\s>]{1,2000})>?(?: {1,20}["'][^"'\n]{0,500}["'])? {0,20}\)/g)) out.push({ target: m[1], index: m.index!, kind: "link" });
   for (const m of text.matchAll(/^\s{0,3}\[[^\]\n]+\]:\s*<?(\S+?)>?(\s|$)/gm)) out.push({ target: m[1], index: m.index!, kind: "link" });
   for (const m of text.matchAll(/(?:^|[\s"'`(=])(?:\$\{?CLAUDE_SKILL_DIR\}?\/|\.\/)?((?:scripts|references|assets)[\\/][\w.\\/-]*\.[A-Za-z0-9]+)(?=$|[\s"'`),:;])/gm)) {
     out.push({ target: m[1], index: m.index! + m[0].indexOf(m[1]), kind: "path" });
