@@ -6,6 +6,9 @@ import { buildReport, formatText } from "./report.js";
 import { hostRules, loadHostPack } from "./hosts.js";
 import type { Severity } from "./types.js";
 import { printable } from "./sanitize.js";
+import { badgeJson, formatHtml } from "./html.js";
+import { formatSarif } from "./sarif.js";
+import { writeFileSync } from "node:fs";
 
 const require = createRequire(import.meta.url);
 const VERSION: string = require("../package.json").version;
@@ -19,6 +22,9 @@ Usage
 
 Options
   --json                 print the report as JSON
+  --html <file>          also write the report as a single HTML page
+  --sarif <file>         also write SARIF 2.1.0 for GitHub code scanning
+  --badge <file>         also write a shields.io endpoint badge with the score
   --fail-on <level>      exit with code 1 at this level or above: error (default), warning, info, never
   --rule <id>            run only this check (repeatable)
   --host <id>            run only this host's rules, including opt-in ones (repeatable):
@@ -46,6 +52,9 @@ export async function main(argv: string[]): Promise<number> {
         rule: { type: "string", multiple: true },
         "max-files": { type: "string", default: "20000" },
         host: { type: "string", multiple: true },
+        html: { type: "string" },
+        sarif: { type: "string" },
+        badge: { type: "string" },
         "no-hosts": { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", short: "v", default: false },
@@ -96,6 +105,11 @@ export async function main(argv: string[]): Promise<number> {
   }
   const report = buildReport(project, runRules(project, values.rule, extra), VERSION);
   if (extra.length) report.hostPack = pack.version;
+  try {
+    if (values.html) writeFileSync(values.html, formatHtml(report));
+    if (values.sarif) writeFileSync(values.sarif, formatSarif(report, [...rules, ...extra]));
+    if (values.badge) writeFileSync(values.badge, badgeJson(report));
+  } catch (e) { console.error(`skillmedic: ${printable((e as Error).message)}`); return 2; }
   console.log(values.json ? JSON.stringify(report, null, 2) : formatText(report, process.stdout.isTTY));
 
   if (failOn === "never") return 0;

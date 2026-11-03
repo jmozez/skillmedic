@@ -32,6 +32,43 @@ jobs:
       - name: Check the CLI runs
         run: node dist/cli.js check test/fixtures/good
 
+  action:
+    name: action (fixtures)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Run the action on the good fixture
+        id: medic
+        uses: ./
+        with:
+          path: test/fixtures/good
+          badge: skillmedic-badge.json
+          sarif: skillmedic.sarif
+      - name: Check the outputs
+        env:
+          SCORE: ${{ steps.medic.outputs.score }}
+        run: |
+          test -s skillmedic-report.html
+          test -s skillmedic-badge.json
+          node -e 'const s=JSON.parse(require("fs").readFileSync("skillmedic.sarif","utf8"));if(s.version!=="2.1.0")process.exit(1)'
+          echo "Score: $SCORE"
+          test -n "$SCORE"
+      - name: The action fails on errors when asked to
+        id: strict
+        continue-on-error: true
+        uses: ./
+        with:
+          path: test/fixtures/bad
+      - name: Check it failed
+        env:
+          OUTCOME: ${{ steps.strict.outcome }}
+        run: test "$OUTCOME" = "failure"
+
   package:
     name: package (install from tarball)
     runs-on: ubuntu-latest
