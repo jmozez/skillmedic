@@ -77,6 +77,20 @@ function texts(s: Skill): { file: string; text: string; base: string }[] {
   return out;
 }
 
+/** YAML escapes such as "\u200b" put hidden characters in a field without them showing in the file. */
+function escapedHidden(s: Skill): Hit[] {
+  const out: Hit[] = [];
+  const walk = (v: unknown, key: string) => {
+    if (typeof v === "string") { const m = v.match(HIDDEN); if (m) out.push({ line: s.fieldLines[key], message: `The ${key} field decodes to an invisible or control character (${describeChar(m[0])}), written as a YAML escape.`, fix: "Remove the escape sequence." }); }
+    else if (Array.isArray(v)) v.forEach((x) => walk(x, key));
+    else if (v && typeof v === "object") Object.values(v).forEach((x) => walk(x, key));
+  };
+  for (const [k, v] of Object.entries(s.frontmatter ?? {})) walk(v, k);
+  const raw = s.raw.replace(/\r\n?/g, "\n");
+  // Only report what the raw file does not already show, so one character is not reported twice.
+  return raw.match(HIDDEN) ? [] : out.slice(0, 5);
+}
+
 export const rules: Rule[] = [
   make("frontmatter-missing", "error", "SKILL.md starts with a --- line and YAML frontmatter.", SPEC, (s) =>
     s.hasFrontmatter ? [] : [{
@@ -211,12 +225,12 @@ export const rules: Rule[] = [
       return findSecrets(t).map((h) => ({ file: fileRel(s, f.rel), line: lineOf(t, h.index), message: `This looks like ${h.kind} (${h.preview}). Anyone who installs the skill gets it.`, fix: "Remove it, revoke it, and read keys from an environment variable instead." }));
     })),
   make("hidden-characters", "error", "No invisible, control or bidi characters.", CLAUDE, (s) =>
-    listFiles(s.dir).flatMap((f) => {
+    listFiles(s.dir).flatMap((f): Hit[] => {
       const t = readText(f);
       if (t === undefined) return [];
       const m = [...t.matchAll(HIDDEN)].filter((x) => !(x.index === 0 && x[0] === "\ufeff" && f.rel !== "SKILL.md"));
       return m.length ? [{ file: fileRel(s, f.rel), line: lineOf(t, m[0].index!), message: `The file has ${m.length} invisible or control character${m.length > 1 ? "s" : ""} (first: ${describeChar(m[0][0])}), which can hide instructions from people reviewing it.`, fix: "Remove zero-width, bidi override, tag and control characters." }] : [];
-    })),
+    }).concat(escapedHidden(s))),
   make("suspicious-instructions", "error", "No text that turns the model against the user.", undefined, (s) =>
     texts(s).flatMap(({ file, text }) => text.split("\n").flatMap((l, i) => SUSPICIOUS.filter(([re]) => re.test(l)).map(([, why]) => ({
       file, line: i + 1, message: `The text ${why}. This is how prompt injection hides in skills.`, fix: "Describe the task plainly. Never ask the model to hide things, skip checks or send data elsewhere.",
