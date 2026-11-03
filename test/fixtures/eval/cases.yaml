@@ -1,0 +1,10 @@
+# Each case is a prompt and the skill a model should load for it. Use none when no skill fits.
+cases:
+  - prompt: Please fill in this PDF form for me
+    expect: pdf-forms
+  - prompt: Summarise the sales CSV data as a report
+    expect: csv-report
+  - prompt: Write a commit message for my staged git diff
+    expect: scribe
+  - prompt: What is the capital of France?
+    expect: none
