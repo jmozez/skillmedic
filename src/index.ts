@@ -6,3 +6,5 @@ export { findSecrets, SUSPICIOUS } from "./security.js";
 export { estimateTokens } from "./text.js";
 export { printable } from "./sanitize.js";
 export type * from "./types.js";
+export { hostRules, loadHostPack } from "./hosts.js";
+export type { HostCheck, HostPack, HostRule } from "./hosts.js";
