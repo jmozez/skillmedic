@@ -1,0 +1,69 @@
+{
+  "name": "skillmedic",
+  "version": "0.1.0",
+  "description": "Check Agent Skills and plugins for Claude, Codex, Cursor and Gemini CLI. Lints frontmatter, links, scripts, secrets and prompt injection, and tests that the right skill triggers.",
+  "type": "module",
+  "bin": {
+    "skillmedic": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "hosts",
+    "action.yml",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "dev": "tsx src/cli.ts",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm test",
+    "coverage": "vitest run --coverage --coverage.include='src/**'"
+  },
+  "keywords": [
+    "agent-skills",
+    "skills",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini-cli",
+    "plugins",
+    "lint",
+    "ai-agents",
+    "cli"
+  ],
+  "author": "jmozez",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jmozez/skillmedic.git"
+  },
+  "homepage": "https://github.com/jmozez/skillmedic#readme",
+  "bugs": {
+    "url": "https://github.com/jmozez/skillmedic/issues"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  }
+}
