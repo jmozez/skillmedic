@@ -1,7 +1,7 @@
 import { printable } from "./sanitize.js";
 import { skillName } from "./rules/index.js";
 import type { Project } from "./types.js";
-import { readFileSync } from "node:fs";
+import { readRegular } from "./files.js";
 import { parse } from "yaml";
 import type { Choice, Listing, Provider } from "./providers.js";
 
@@ -67,7 +67,7 @@ export function parseSuite(text: string, where = "cases file"): EvalSuite {
 }
 
 export function loadSuite(path: string): EvalSuite {
-  return parseSuite(readFileSync(path, "utf8"), path);
+  return parseSuite(readRegular(path, 5_000_000).toString("utf8"), path);
 }
 
 export function isCorrect(c: EvalCase, choice: Choice): boolean {
