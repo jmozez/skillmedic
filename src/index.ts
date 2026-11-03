@@ -10,3 +10,6 @@ export { hostRules, loadHostPack } from "./hosts.js";
 export type { HostCheck, HostPack, HostRule } from "./hosts.js";
 export { badgeJson, formatHtml } from "./html.js";
 export { formatSarif } from "./sarif.js";
+export { patchSkill, runFix, formatFix } from "./fix.js";
+export { runEval, parseSuite, loadSuite, listings, formatEval } from "./eval.js";
+export { makeProvider, mock } from "./providers.js";
