@@ -8,6 +8,7 @@ import type { Finding, Project, Rule, Severity, Skill } from "../types.js";
 
 export const SPEC = "https://agentskills.io/specification";
 export const CLAUDE = "https://code.claude.com/docs/en/skills";
+export const PLUGINS = "https://code.claude.com/docs/en/plugins-reference";
 export const BEST = "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices";
 
 /** Frontmatter fields documented by the Agent Skills spec or by at least one host. */
@@ -18,7 +19,7 @@ export const KNOWN_FIELDS = new Set([
   "when_to_use", "argument-hint", "arguments", "disable-model-invocation", "user-invocable", "disallowed-tools",
   "model", "effort", "context", "agent", "background", "hooks", "paths", "shell",
   // Cursor
-  "icon", "color",
+  "icon", "color", "globs",
 ]);
 
 type Hit = Omit<Finding, "rule" | "severity" | "skill" | "file"> & { file?: string };
@@ -257,6 +258,27 @@ export const rules: Rule[] = [
         fix: "Give each skill its own name.",
       })));
     },
+  },
+  {
+    id: "plugin-invalid",
+    severity: "error",
+    summary: "Plugin and extension manifests are valid JSON objects.",
+    check: (p) => p.plugins.filter((x) => x.error).map((x) => ({
+      rule: "plugin-invalid", severity: "error" as const, file: x.file,
+      message: `The ${x.format} manifest cannot be read: ${x.error}`, fix: "Fix the JSON so the host can load the plugin.",
+    })),
+  },
+  {
+    id: "plugin-name",
+    severity: "error",
+    summary: "A Claude Code plugin has a kebab-case name with no spaces, @, : or slashes.",
+    source: PLUGINS,
+    check: (p) => p.plugins.filter((x) => x.format === "claude" && x.manifest).flatMap((x) => {
+      const n = x.manifest!.name;
+      const base = { rule: "plugin-name", severity: "error" as const, file: x.file, source: PLUGINS };
+      if (typeof n !== "string" || !n.trim()) return [{ ...base, message: "plugin.json has no name, and name is the only required key.", fix: "Add \"name\": \"my-plugin\"." }];
+      return /[\s@:/\\\u0000-\u001f\u202a-\u202e\u2066-\u2069]/.test(n) ? [{ ...base, skill: n, message: `The plugin name ${n} has a space, @, :, slash or control character.`, fix: "Use kebab-case, such as my-plugin." }] : [];
+    }),
   },
 ];
 

@@ -1,0 +1,117 @@
+# skillmedic host rule pack.
+# Each rule records what a host does with a skill, with a link to the official page that
+# says so and a short quote. Rules were checked against the source on the date in `checked`.
+# If a host changes, update the rule and bump `version`.
+# Rules with `default: false` run only when you name their host with --host.
+version: 2026.11.03
+
+hosts:
+  claude-code: Claude Code
+  claude-api: Claude API and claude.ai skill uploads
+  codex: OpenAI Codex
+  cursor: Cursor
+  gemini: Gemini CLI
+
+rules:
+  - id: claude-code-listing-length
+    host: claude-code
+    severity: warning
+    summary: description plus when_to_use fits in 1,536 characters, or the listing is cut.
+    check: { type: listing-length, max: 1536, fields: [description, when_to_use] }
+    fix: Put the key use case first and move detail into the body.
+    source: https://code.claude.com/docs/en/skills
+    quote: "the combined `description` and `when_to_use` text is truncated at 1,536 characters in the skill listing to reduce context usage."
+    checked: 2026-11-03
+
+  - id: claude-code-reserved-folder
+    host: claude-code
+    severity: error
+    summary: The skill folder is not called synced or anthropic-skills, which Claude Code skips.
+    check: { type: reserved-folder, names: [synced, anthropic-skills] }
+    fix: Rename the skill folder.
+    source: https://code.claude.com/docs/en/skills
+    quote: "Claude Code uses `~/.claude/skills/synced/` for skills downloaded from claude.ai and skips a skill you author at that name"
+    checked: 2026-11-03
+
+  - id: claude-code-name-characters
+    host: claude-code
+    severity: error
+    summary: The name has no angle brackets, control, zero-width, private-use or direction characters, or odd spaces.
+    check: { type: name-characters }
+    fix: Use only lowercase letters, digits and hyphens.
+    source: https://code.claude.com/docs/en/skills
+    quote: "Claude Code refuses a command name or a frontmatter `name` that contains characters such as these"
+    checked: 2026-11-03
+
+  - id: claude-api-name-reserved
+    host: claude-api
+    default: false
+    severity: error
+    summary: The name does not contain the reserved words anthropic or claude.
+    check: { type: name-reserved, words: [anthropic, claude] }
+    fix: Choose a name without anthropic or claude.
+    source: https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview
+    quote: "Cannot contain reserved words: \"anthropic\", \"claude\""
+    checked: 2026-11-03
+
+  - id: claude-api-no-xml
+    host: claude-api
+    default: false
+    severity: error
+    summary: name and description contain no XML tags.
+    check: { type: no-xml, fields: [name, description] }
+    fix: Remove the tags, or describe them in words.
+    source: https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview
+    quote: "Cannot contain XML tags"
+    checked: 2026-11-03
+
+  - id: claude-api-allowed-fields
+    host: claude-api
+    default: false
+    severity: error
+    summary: The frontmatter uses only the six spec fields, or upload fails.
+    check: { type: allowed-fields, fields: [name, description, license, compatibility, metadata, allowed-tools] }
+    fix: Remove the other fields before you upload or package the skill.
+    source: https://code.claude.com/docs/en/skills
+    quote: "If you include any field the spec doesn't allow, packaging or upload fails with a hard error instead of ignoring the field"
+    checked: 2026-11-03
+
+  - id: codex-listing-budget
+    host: codex
+    severity: warning
+    summary: All skill names, descriptions and paths fit in 8,000 characters, or Codex shortens or drops some.
+    check: { type: listing-budget, max: 8000 }
+    fix: Shorten descriptions, put trigger words first, or raise skills.max_context_tokens.
+    source: https://developers.openai.com/codex/skills
+    quote: "By default, this list uses at most 2% of the model's context window, or 8,000 characters when the context window is unknown. If many skills are installed, Codex shortens skill descriptions first."
+    checked: 2026-11-03
+
+  - id: cursor-name-required
+    host: cursor
+    severity: error
+    summary: The frontmatter has a name made of lowercase letters, numbers and hyphens.
+    check: { type: name-required, pattern: "^[a-z0-9-]+$" }
+    fix: Add a name such as my-skill.
+    source: https://cursor.com/docs/context/skills
+    quote: "Skill identifier. Lowercase letters, numbers, and hyphens only. Must match the parent folder name."
+    checked: 2026-11-03
+
+  - id: cursor-legacy-globs
+    host: cursor
+    severity: info
+    summary: The skill uses paths, not the legacy globs field.
+    check: { type: legacy-field, field: globs, use: paths }
+    fix: Rename globs to paths.
+    source: https://cursor.com/docs/context/skills
+    quote: "The legacy `globs` field is still accepted as a fallback for older skills, but new skills should use `paths`."
+    checked: 2026-11-03
+
+  - id: gemini-shadowed-skill
+    host: gemini
+    severity: warning
+    summary: No .agents/skills skill hides a .gemini/skills skill of the same name.
+    check: { type: shadowed, winner: "/.agents/skills/", loser: "/.gemini/skills/" }
+    fix: Rename one of the skills, or keep only one copy.
+    source: https://geminicli.com/docs/cli/skills/
+    quote: "Within the same tier (user or workspace), the `.agents/skills/` alias takes precedence over the `.gemini/skills/` directory."
+    checked: 2026-11-03
