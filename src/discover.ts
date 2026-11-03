@@ -1,4 +1,5 @@
-import { lstatSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { lstatSync, readdirSync, statSync } from "node:fs";
+import { readRegular } from "./files.js";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { parseFrontmatter } from "./frontmatter.js";
 import type { Plugin, PluginFormat, Project, Skill } from "./types.js";
@@ -40,9 +41,7 @@ const PLUGIN_HOSTS: Record<PluginFormat, string[]> = {
 export const posix = (p: string) => p.split(sep).join("/");
 
 function readSmall(path: string, max: number): string {
-  const size = statSync(path).size;
-  if (size > max) throw new Error(`The file is ${size.toLocaleString("en-NZ")} bytes, over the ${max.toLocaleString("en-NZ")} byte limit.`);
-  return readFileSync(path, "utf8");
+  return readRegular(path, max).toString("utf8");
 }
 
 function readPlugin(root: string, dir: string, rel: string, format: PluginFormat, max: number): Plugin {

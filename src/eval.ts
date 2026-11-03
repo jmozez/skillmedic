@@ -1,7 +1,7 @@
 import { printable } from "./sanitize.js";
 import { skillName } from "./rules/index.js";
 import type { Project } from "./types.js";
-import { readFileSync, statSync } from "node:fs";
+import { readRegular } from "./files.js";
 import { parse } from "yaml";
 import type { Choice, Listing, Provider } from "./providers.js";
 
@@ -67,10 +67,7 @@ export function parseSuite(text: string, where = "cases file"): EvalSuite {
 }
 
 export function loadSuite(path: string): EvalSuite {
-  const st = statSync(path);
-  if (!st.isFile()) throw new Error(`${path} is not a regular file.`);
-  if (st.size > 5_000_000) throw new Error(`${path} is over the 5,000,000 byte limit.`);
-  return parseSuite(readFileSync(path, "utf8"), path);
+  return parseSuite(readRegular(path, 5_000_000).toString("utf8"), path);
 }
 
 export function isCorrect(c: EvalCase, choice: Choice): boolean {

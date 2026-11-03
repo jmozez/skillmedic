@@ -39,7 +39,7 @@ describe("terminal and report injection", () => {
     const r = report(root());
     r.findings.push({ rule: "x", severity: "error", message: `</td></tr></table><script>alert(1)</script><img src=x onerror=alert(1)> ${evil}`, source: "javascript:alert(1)", skill: "<b>s</b>" });
     const html = formatHtml(r);
-    expect(html).not.toMatch(/<script>|<img|<b>s<\/b>|javascript:/);
+    expect(html).not.toMatch(/<script|<img|<b>s<\/b>|javascript:/i);
     expect(html).not.toContain(ESC);
     expect(html).not.toContain(RLO);
   });

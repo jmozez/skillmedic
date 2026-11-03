@@ -1,4 +1,4 @@
-import { lstatSync, readdirSync, readFileSync } from "node:fs";
+import { closeSync, constants, fstatSync, lstatSync, openSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { posix } from "./discover.js";
 
@@ -41,9 +41,26 @@ export function listFiles(dir: string, limit = 500): SkillFile[] {
 export function readText(f: SkillFile, max = 1_000_000): string | undefined {
   if (f.size > max) return undefined;
   let buf: Buffer;
-  try { buf = readFileSync(f.path); } catch { return undefined; }
+  try { buf = readRegular(f.path, max); } catch { return undefined; }
   if (buf.subarray(0, 8000).includes(0)) return undefined;
   return buf.toString("utf8");
 }
 
 export function clearFileCache() { cache.clear(); }
+
+/**
+ * Reads a regular file through one file handle, so a swap between the check and the read
+ * cannot point it at a link, a FIFO or a bigger file. Throws with a plain message otherwise.
+ */
+export function readRegular(path: string, max: number): Buffer {
+  const flags = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0);
+  const fd = openSync(path, flags);
+  try {
+    const st = fstatSync(fd);
+    if (!st.isFile()) throw new Error(`${path} is not a regular file.`);
+    if (st.size > max) throw new Error(`The file is ${st.size.toLocaleString("en-NZ")} bytes, over the ${max.toLocaleString("en-NZ")} byte limit.`);
+    return readFileSync(fd);
+  } finally {
+    closeSync(fd);
+  }
+}
