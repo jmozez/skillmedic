@@ -107,7 +107,7 @@ export function discover(target: string, o: DiscoverOptions = {}): Project {
     if (names.includes("plugin.json") && !/^\.(claude|codex|cursor)-plugin$/.test(basename(dir))) {
       // A portable Agent Plugin keeps plugin.json at the root and names the shared schema.
       const pj = readPlugin(root, dir, "plugin.json", "agent", max);
-      if (pj.error || String(pj.manifest?.$schema ?? "").includes("agent-plugins.org")) plugins.push(pj);
+      if (pj.error || isAgentSchema(pj.manifest?.$schema)) plugins.push(pj);
     }
     for (const name of names) {
       if (++seen > maxFiles) { truncated = true; return; }
@@ -132,4 +132,15 @@ export function discover(target: string, o: DiscoverOptions = {}): Project {
     }
   }
   return { root, skills, plugins, truncated };
+}
+
+/** True when a $schema URL is served from agent-plugins.org. */
+export function isAgentSchema(v: unknown): boolean {
+  if (typeof v !== "string") return false;
+  try {
+    const h = new URL(v).hostname;
+    return h === "agent-plugins.org" || h.endsWith(".agent-plugins.org");
+  } catch {
+    return false;
+  }
 }
