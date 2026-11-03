@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { posix } from "../discover.js";
 import { listFiles, readText } from "../files.js";
@@ -196,7 +196,8 @@ export const rules: Rule[] = [
     const linked = new Set(references(s.body).map((r) => resolveRef(s.dir, r.target)).filter((p) => /\.mdx?$/i.test(p) && inside(s.dir, p) && existsSync(p)));
     return [...linked].flatMap((p) => {
       let text: string;
-      try { text = statSync(p).size < 1_000_000 ? readFileSync(p, "utf8") : ""; } catch { return []; }
+      // lstat, so links and FIFOs are never opened.
+      try { const st = lstatSync(p); text = st.isFile() && st.size < 1_000_000 ? readFileSync(p, "utf8") : ""; } catch { return []; }
       const deeper = references(text).filter((r) => r.kind === "link" && /\.mdx?($|#)/i.test(r.target) && !linked.has(resolveRef(dirname(p), r.target)));
       return deeper.length ? [{ file: fileRel(s, posix(relative(s.dir, p))), line: lineOf(text, deeper[0].index), message: `This reference links on to ${deeper[0].target}. Agents may only skim files reached through a chain.`, fix: "Link every reference file straight from SKILL.md." }] : [];
     });
