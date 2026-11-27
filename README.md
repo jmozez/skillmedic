@@ -18,7 +18,7 @@ It never runs a skill's scripts. See [SECURITY.md](SECURITY.md).
 npx skillmedic check
 ```
 
-Or install it with `npm install -g skillmedic`. Node 20 or later is needed.
+Or install it with `npm install -g skillmedic`. Node 22.12 or later is needed.
 
 ## Check skills
 
