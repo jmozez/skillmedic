@@ -4,7 +4,7 @@ Check your Agent Skills and plugins before your users do.
 
 [![CI](https://github.com/jmozez/skillmedic/actions/workflows/ci.yml/badge.svg)](https://github.com/jmozez/skillmedic/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/jmozez/skillmedic/actions/workflows/codeql.yml/badge.svg)](https://github.com/jmozez/skillmedic/actions/workflows/codeql.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 skillmedic finds the problems that stop an agent from picking or using your skill: a missing or broken frontmatter, a vague description, links to files that are not there, a body too long to load, scripts that cannot run, secrets, and hidden instructions. It knows the documented limits of Claude Code, the Claude API, OpenAI Codex, Cursor and Gemini CLI, and it can test with a real model whether the right skill is picked for each prompt.
 
