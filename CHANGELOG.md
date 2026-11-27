@@ -4,6 +4,10 @@ All notable changes to skillmedic are listed here. The format follows Keep a Cha
 
 ## [Unreleased]
 
+### Changed
+
+- Node.js 22.12 or later is now required. Node 20 reached end of life in April 2026. CI tests Node 22, 24 and 26.
+
 ## [0.1.0]
 
 The first version. Not yet published.
