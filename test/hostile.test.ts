@@ -129,7 +129,7 @@ describe("files that attack the checker", () => {
     const files: Record<string, string> = { "s/SKILL.md": skill("s", GOOD_DESC) };
     for (let i = 0; i < 300; i++) files[`junk/${i}.txt`] = "";
     expect(discover(tree(files), { maxFiles: 50 }).truncated).toBe(true);
-  });
+  }, 30_000); // writing 300 files is slow on Windows runners
   it("survives very deep folders", () => {
     const deep = Array.from({ length: 60 }, (_, i) => `d${i}`).join("/");
     const root = tree({ [`${deep}/SKILL.md`]: skill("d59", GOOD_DESC) });
